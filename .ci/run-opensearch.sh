@@ -45,6 +45,9 @@ END
 ))
   echo "$i: $http_port $node_url "
   volume_name=${node_name}-rest-test-data
+  if [[ "$SECURE_INTEGRATION" == "true" ]]; then
+    volume_name=${node_name}-rest-test-data-with-security
+  fi
   volumes+=($(cat <<-END
     --volume $volume_name:/usr/share/opensearch/data${i}
 END
