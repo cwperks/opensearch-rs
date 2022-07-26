@@ -29,8 +29,14 @@
  */
 
 use once_cell::sync::Lazy;
+use std::fs::File;
+use std::io::Read;
+use std::fs;
 use opensearch::{
-    auth::Credentials,
+    auth::{
+        Credentials,
+        ClientCertificate
+    },
     cert::CertificateValidation,
     cluster::ClusterHealthParts,
     http::{
@@ -69,24 +75,25 @@ static GLOBAL_CLIENT: Lazy<OpenSearch> = Lazy::new(|| {
 
     // if the url is https and specifies a username and password, remove from the url and set credentials
     let credentials = if url.scheme() == "https" {
-        let username = if !url.username().is_empty() {
+        if !url.username().is_empty() {
             let u = url.username().to_string();
             url.set_username("").unwrap();
-            u
+            let password = match url.password() {
+                Some(p) => {
+                    let pass = p.to_string();
+                    url.set_password(None).unwrap();
+                    pass
+                }
+                None => "admin".into(),
+            };
+            Some(Credentials::Basic(u, password))
         } else {
-            "admin".into()
-        };
-
-        let password = match url.password() {
-            Some(p) => {
-                let pass = p.to_string();
-                url.set_password(None).unwrap();
-                pass
-            }
-            None => "admin".into(),
-        };
-
-        Some(Credentials::Basic(username, password))
+            let mut buf = Vec::new();
+            let mut f = File::open("tests/common/kirk.p12").expect("Unable to open file");
+            f.read_to_end(&mut buf).expect("Unable to read vec");
+            let cert = ClientCertificate::Pkcs12(buf, Some("".to_string()));
+            Some(Credentials::Certificate(cert))
+        }
     } else {
         None
     };
