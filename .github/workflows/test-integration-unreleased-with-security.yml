@@ -9,7 +9,7 @@ jobs:
       fail-fast: false
       matrix:
         entry:
-          - { opensearch_ref: '2.x' }
+          - { opensearch_ref: '2.0' }
     steps:
       - name: Checkout OpenSearch
         uses: actions/checkout@v2
