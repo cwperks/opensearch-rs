@@ -1,4 +1,4 @@
-name: Integration with Unreleased OpenSearch
+name: Integration with Unreleased OpenSearch with Security
 
 on: [push, pull_request]
 
