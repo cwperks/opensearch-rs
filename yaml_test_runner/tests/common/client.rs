@@ -75,6 +75,50 @@ static GLOBAL_CLIENT: Lazy<OpenSearch> = Lazy::new(|| {
 
     // if the url is https and specifies a username and password, remove from the url and set credentials
     let credentials = if url.scheme() == "https" {
+        let username = if !url.username().is_empty() {
+            let u = url.username().to_string();
+            url.set_username("").unwrap();
+            u
+        } else {
+            "admin".into()
+        };
+
+        let password = match url.password() {
+            Some(p) => {
+                let pass = p.to_string();
+                url.set_password(None).unwrap();
+                pass
+            }
+            None => "admin".into(),
+        };
+
+        Some(Credentials::Basic(username, password))
+    } else {
+        None
+    };
+
+    let conn_pool = SingleNodeConnectionPool::new(url);
+    let mut builder = TransportBuilder::new(conn_pool);
+
+    builder = match credentials {
+        Some(c) => builder.auth(c).cert_validation(CertificateValidation::None),
+        None => builder,
+    };
+
+    if running_proxy() {
+        let proxy_url = Url::parse("http://localhost:8888").unwrap();
+        builder = builder.proxy(proxy_url, None, None);
+    }
+
+    let transport = builder.build().unwrap();
+    OpenSearch::new(transport)
+});
+
+static SUPER_ADMIN_CLIENT: Lazy<OpenSearch> = Lazy::new(|| {
+    let mut url = Url::parse(cluster_addr().as_ref()).unwrap();
+
+    // if the url is https and specifies a username and password, remove from the url and set credentials
+    let credentials = if url.scheme() == "https" {
         let mut buf = Vec::new();
         let mut f = File::open("tests/common/kirk.p12").expect("Unable to open file");
         f.read_to_end(&mut buf).expect("Unable to read vec");
@@ -106,6 +150,11 @@ pub fn get() -> &'static OpenSearch {
     GLOBAL_CLIENT.deref()
 }
 
+/// Gets the client to use in tests
+pub fn get_super_admin() -> &'static OpenSearch {
+    SUPER_ADMIN_CLIENT.deref()
+}
+
 /// Reads the response from OpenSearch, returning the method, status code, text response,
 /// and the response parsed from json or yaml
 pub async fn read_response(
@@ -129,7 +178,7 @@ pub async fn read_response(
 
 /// general setup step for an OSS yaml test
 pub async fn general_cluster_setup() -> Result<(), Error> {
-    let client = get();
+    let client = get_super_admin();
     delete_indices(client).await?;
     delete_snapshots(client).await?;
 
