@@ -13,6 +13,8 @@ jobs:
           - { opensearch_ref: '2.0' }
           - { opensearch_ref: '2.x' }
           - { opensearch_ref: 'main' }
+        security:
+          - { opensearch_ref: 'main' }
     steps:
       - name: Checkout OpenSearch
         uses: actions/checkout@v2
@@ -47,3 +49,5 @@ jobs:
 
       - name: Integ OpenSearch ${{ matrix.entry.opensearch_ref }} secured=false
         run: "./.ci/run-tests opensearch SNAPSHOT false"
+      - name: Integ OpenSearch ${{ matrix.security.opensearch_ref }} secured=true
+        run: "./.ci/run-tests opensearch SNAPSHOT true"
