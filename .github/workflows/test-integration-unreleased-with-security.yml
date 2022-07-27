@@ -9,11 +9,6 @@ jobs:
       fail-fast: false
       matrix:
         entry:
-          - { opensearch_ref: '1.x' }
-          - { opensearch_ref: '2.0' }
-          - { opensearch_ref: '2.x' }
-          - { opensearch_ref: 'main' }
-        security:
           - { opensearch_ref: 'main' }
     steps:
       - name: Checkout OpenSearch
@@ -43,9 +38,9 @@ jobs:
       - name: Install latest nightly
         uses: actions-rs/toolchain@v1
         with:
-            toolchain: nightly
-            override: true
-            components: rustfmt, clippy
+          toolchain: nightly
+          override: true
+          components: rustfmt, clippy
 
-      - name: Integ OpenSearch ${{ matrix.entry.opensearch_ref }} secured=false
-        run: "./.ci/run-tests opensearch SNAPSHOT false"
+      - name: Integ OpenSearch ${{ matrix.entry.opensearch_ref }} secured=true
+        run: "./.ci/run-tests opensearch SNAPSHOT true"
